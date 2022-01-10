@@ -1,4 +1,4 @@
-FROM openshift/origin-release:golang-1.14 AS build
+FROM golang:1.17 AS build
 COPY . /go/src/github.com/mintel/eventrouter
 WORKDIR /go/src/github.com/mintel/eventrouter
 RUN go build .
