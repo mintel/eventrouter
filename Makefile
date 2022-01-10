@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+-include $(shell curl -sSL -o .build-harness "https://git.io/build-harness"; echo .build-harness)
+export BUILD_HARNESS_PATH ?= $(shell 'pwd')
+export BUILD_HARNESS_EXTENSIONS_PATH ?= $(BUILD_HARNESS_PATH)/build-harness-extensions
+
 TARGET = eventrouter
 GOTARGET = github.com/openshift/$(TARGET)
 LOCAL_IMAGE_TAG=openshift/logging-eventrouter
