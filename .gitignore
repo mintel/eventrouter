@@ -61,3 +61,8 @@ tags
 .history
 
 eventrouter
+
+### Mintel Extras ###
+.build-harness
+build-harness/
+jsonnet/
