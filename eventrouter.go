@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
-	"github.com/openshift/eventrouter/sinks"
+	"github.com/mintel/eventrouter/sinks"
 	"github.com/prometheus/client_golang/prometheus"
 
 	v1 "k8s.io/api/core/v1"
@@ -133,7 +133,7 @@ func (er *EventRouter) Run(stopCh <-chan struct{}) {
 func (er *EventRouter) addEvent(obj interface{}) {
 	e, ok := obj.(*v1.Event)
 	if !ok {
-		glog.Error("Given object '%v' not v1.Event", obj)
+		glog.Errorf("Given object '%v' not v1.Event", obj)
 		return
 	}
 	prometheusEvent(e)
@@ -144,12 +144,12 @@ func (er *EventRouter) addEvent(obj interface{}) {
 func (er *EventRouter) updateEvent(objOld interface{}, objNew interface{}) {
 	eOld, ok := objOld.(*v1.Event)
 	if !ok {
-		glog.Error("Given object '%v' not v1.Event", objOld)
+		glog.Errorf("Given object '%v' not v1.Event", objOld)
 		return
 	}
 	eNew, ok := objNew.(*v1.Event)
 	if !ok {
-		glog.Error("Given object '%v' not v1.Event", objNew)
+		glog.Errorf("Given object '%v' not v1.Event", objNew)
 		return
 	}
 	prometheusEvent(eNew)
@@ -208,7 +208,7 @@ func prometheusEvent(event *v1.Event) {
 func (er *EventRouter) deleteEvent(obj interface{}) {
 	e, ok := obj.(*v1.Event)
 	if !ok {
-		glog.Error("Given object '%v' not v1.Event", obj)
+		glog.Errorf("Given object '%v' not v1.Event", obj)
 		return
 	}
 	// NOTE: This should *only* happen on TTL expiration there
