@@ -17,27 +17,17 @@ export BUILD_HARNESS_PATH ?= $(shell 'pwd')
 export BUILD_HARNESS_EXTENSIONS_PATH ?= $(BUILD_HARNESS_PATH)/build-harness-extensions
 
 TARGET = eventrouter
-GOTARGET = github.com/openshift/$(TARGET)
-LOCAL_IMAGE_TAG=openshift/logging-eventrouter
-IMAGE_REPOSITORY_NAME=quay.io/openshift/logging-eventrouter:latest
+GOTARGET = github.com/mintel/$(TARGET)
 
 ifneq ($(VERBOSE),)
 VERBOSE_FLAG = -v
 endif
 TESTARGS ?= $(VERBOSE_FLAG) -timeout 60s
-TEST_PKGS ?= $(GOTARGET)/sinks/...
-TEST = go test $(TEST_PKGS) $(TESTARGS)
+TEST_PKGS ?= $(GOTARGET)/...
 
-build: fmt
+build:
 	go build -o $(TARGET)
 .PHONY: build
-
-fmt:
-	@echo gofmt
-
-image:
-	podman build -f Dockerfile.rhel8 -t $(LOCAL_IMAGE_TAG) .
-.PHONY: image
 
 test:
 	go test $(TEST_PKGS) $(TESTARGS)

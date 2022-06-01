@@ -18,6 +18,7 @@ package main
 
 import (
 	"fmt"
+	"regexp"
 
 	"github.com/golang/glog"
 	"github.com/mintel/eventrouter/sinks"
@@ -156,6 +157,29 @@ func (er *EventRouter) updateEvent(objOld interface{}, objNew interface{}) {
 	er.eSink.UpdateEvents(eNew, eOld)
 }
 
+// saniiseObjName strips random characters from end of object names
+// to avoid high label cardinality
+func sanitiseObjName(event *v1.Event) string {
+	name := event.InvolvedObject.Name
+
+	switch event.InvolvedObject.Kind {
+	case "Job":
+		// Strip random characters from end of CronJob Job names
+		reg := regexp.MustCompile(`^(.*)-\d{8}$`)
+		if reg.MatchString(name) {
+			name = reg.ReplaceAllString(name, "${1}")
+		}
+	case "Pod":
+		// Strip random characters from end of CronJob Pod names
+		reg := regexp.MustCompile(`^(.*)-\d{8}--\d-.{5}$`)
+		if reg.MatchString(name) {
+			name = reg.ReplaceAllString(name, "${1}")
+		}
+	}
+
+	return name
+}
+
 // prometheusEvent is called when an event is added or updated
 func prometheusEvent(event *v1.Event) {
 	var counter prometheus.Counter
@@ -165,7 +189,7 @@ func prometheusEvent(event *v1.Event) {
 	case "Normal":
 		counter, err = kubernetesNormalEventCounterVec.GetMetricWithLabelValues(
 			event.InvolvedObject.Kind,
-			event.InvolvedObject.Name,
+			sanitiseObjName(event),
 			event.InvolvedObject.Namespace,
 			event.Reason,
 			event.Source.Host,
@@ -173,7 +197,7 @@ func prometheusEvent(event *v1.Event) {
 	case "Warning":
 		counter, err = kubernetesWarningEventCounterVec.GetMetricWithLabelValues(
 			event.InvolvedObject.Kind,
-			event.InvolvedObject.Name,
+			sanitiseObjName(event),
 			event.InvolvedObject.Namespace,
 			event.Reason,
 			event.Source.Host,
@@ -181,7 +205,7 @@ func prometheusEvent(event *v1.Event) {
 	case "Info":
 		counter, err = kubernetesInfoEventCounterVec.GetMetricWithLabelValues(
 			event.InvolvedObject.Kind,
-			event.InvolvedObject.Name,
+			sanitiseObjName(event),
 			event.InvolvedObject.Namespace,
 			event.Reason,
 			event.Source.Host,
@@ -189,7 +213,7 @@ func prometheusEvent(event *v1.Event) {
 	default:
 		counter, err = kubernetesUnknownEventCounterVec.GetMetricWithLabelValues(
 			event.InvolvedObject.Kind,
-			event.InvolvedObject.Name,
+			sanitiseObjName(event),
 			event.InvolvedObject.Namespace,
 			event.Reason,
 			event.Source.Host,
@@ -211,7 +235,30 @@ func (er *EventRouter) deleteEvent(obj interface{}) {
 		glog.Errorf("Given object '%v' not v1.Event", obj)
 		return
 	}
+	deletePrometheusLabels(e)
 	// NOTE: This should *only* happen on TTL expiration there
 	// is no reason to push this to a sink
 	glog.V(5).Infof("Event Deleted from the system:\n%v", e)
+}
+
+// deletePrometheusLabels deleted the metric where label values match the event
+func deletePrometheusLabels(event *v1.Event) {
+	labels := prometheus.Labels{
+		"involved_object_kind":      event.InvolvedObject.Kind,
+		"involved_object_name":      sanitiseObjName(event),
+		"involved_object_namespace": event.InvolvedObject.Namespace,
+		"reason":                    event.Reason,
+		"source":                    event.Source.Host,
+	}
+
+	switch event.Type {
+	case "Normal":
+		kubernetesNormalEventCounterVec.Delete(labels)
+	case "Warning":
+		kubernetesWarningEventCounterVec.Delete(labels)
+	case "Info":
+		kubernetesInfoEventCounterVec.Delete(labels)
+	default:
+		kubernetesUnknownEventCounterVec.Delete(labels)
+	}
 }
