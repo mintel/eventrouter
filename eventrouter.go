@@ -157,7 +157,7 @@ func (er *EventRouter) updateEvent(objOld interface{}, objNew interface{}) {
 	er.eSink.UpdateEvents(eNew, eOld)
 }
 
-// saniiseObjName strips random characters from end of object names
+// sanitiseObjName strips random characters from end of object names
 // to avoid high label cardinality
 func sanitiseObjName(event *v1.Event) string {
 	name := event.InvolvedObject.Name
